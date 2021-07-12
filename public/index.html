@@ -103,7 +103,7 @@
           const sendData = await fetch('/sendData', options);
 
           // Save the user's location and weather data 
-          const saveButton = document.getElementById('save_location');
+          const saveData = document.getElementById('save_location');
           saveButton.addEventListener('click', async event => {
             // Set up a route, then Send the post request with the options object to the server 
             // to save in the database
