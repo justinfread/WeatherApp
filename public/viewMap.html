@@ -1,0 +1,64 @@
+<!--
+  Using Microsoft Bing Maps and Iowa State University's tile map service to display an animated weather map
+  Bing maps API key application: https://www.bingmapsportal.com/Application
+  Iowa Environmental Mesonet, Open Geospatial Consortium, Tile Map Service API: http://www.mesonet.agron.iastate.edu/ogc/
+  Microsoft Bing | Dev Center example: https://www.bing.com/api/maps/sdk/mapcontrol/isdk/weatherradarmap#HTML
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <!-- Map Styles -->
+    <style type='text/css'>body{margin:0;padding:0;overflow:hidden;font-family:'Segoe UI',Helvetica,Arial,Sans-Serif}</style> 
+    <title>Weather</title>
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="viewMap.html">Map</a></li>
+      </ul>
+    </nav>
+    <h1>Map</h1>
+
+    <div id='printoutPanel'></div>
+    <div id='weather_map' style='width: 100vw; height: 100vh;'></div>
+
+    <script type='text/javascript'> 
+      // Load bing map with coordinates and Iowa State University radar
+      async function loadMapScenario() {
+        // Get the current weather information: location, time, forecast, and air quality
+        const getWeatherData = await fetch('/getData');
+        const weatherData = await getWeatherData.json();
+
+        // Create Microsoft bing map in div element with the current latitude, longitude, and default zoom 
+        const map = new Microsoft.Maps.Map(document.getElementById('weather_map'), {
+          center: new Microsoft.Maps.Location(weatherData.lat, weatherData.lon),
+          zoom: 6
+        });
+
+        // Tile url from Iowa Environmental Mesonet of Iowa State University
+        const urlIowaState = 'https://mesonet.agron.iastate.edu/cache/tile.py/1.0.0/nexrad-n0q-{timestamp}/{zoom}/{x}/{y}.png';
+        let timestamps = ['900913-m50m', '900913-m45m', '900913-m40m', '900913-m35m', '900913-m30m', '900913-m25m', '900913-m20m', '900913-m15m', '900913-m10m', '900913-m05m', '900913'];
+        let tileSources = [];
+        for (let i = 0; i < timestamps.length; i++) {
+            const tileSource = new Microsoft.Maps.TileSource({
+                uriConstructor: urlIowaState.replace('{timestamp}', timestamps[i])
+            });
+            tileSources.push(tileSource);
+        }
+        const animatedLayer = new Microsoft.Maps.AnimatedTileLayer({ mercator: tileSources, frameRate: 500 });
+        map.layers.insert(animatedLayer);
+      }
+    </script>    
+    <!--
+        Connect to Bing Maps url, provide API key, and call the call loadMapScenario function.
+        Bing maps requires an API key inside the url. You restrict access on your Bing Maps API keys to a set of 
+        domains that you specify when you sign up for a key.
+    -->
+    <script type='text/javascript' src='https://www.bing.com/api/maps/mapcontrol?key=YourBingMapsKey&callback=loadMapScenario' async defer></script>
+  </body>
+</html>

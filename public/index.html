@@ -1,0 +1,118 @@
+<!--
+  This page requires the user to consent to providing their location to send their coordinates to the server, 
+  that returns the detailed forecast from the national weather service API and the air quality index from the 
+  open weather map API. The user can also save the location and weather and time data
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Weather</title>
+  </head>
+  <body>
+    <nav>
+      <ul>
+        <li><a href="index.html">Home</a></li>
+        <li><a href="viewMap.html">Map</a></li>
+      </ul>
+    </nav>
+    <h1>Weather App</h1>
+    <button id="save_location">Save Location</button>  
+    <p>
+      Latitude: <span id="latitude"></span><br/>
+      Longitude: <span id="longitude"></span>
+    </p>
+    <p>
+      <h1>Forecast</h1>
+      <span id="detailed_forecast"></span>
+      <h1>Air Quality</h1>
+      <span id="air_quality"></span>
+    </p>
+    <script>
+      // Test to see if geolocation is available
+      if('geolocation' in navigator) {
+        console.log("geolocation is available"); 
+        // Get the current position, add coords to span elements and console log them
+        navigator.geolocation.getCurrentPosition(async position => {
+          const lat = position.coords.latitude;
+          const lon = position.coords.longitude;
+          const timeStamp = Date.now();
+            
+          // Attach lat and lon to the span elements
+          document.getElementById("latitude").textContent = lat;
+          document.getElementById("longitude").textContent = lon;
+
+          // Get the detailed weather forecast from National Weather Service API: Set up a route with route
+          // parameters lat and lon, coords, to send to the server and retrieve the weather forecast
+          const nws_api = `/weather/${lat},${lon}`;
+          const get_forecast = await fetch(nws_api);
+          const forecast = await get_forecast.json();
+          let detailedForecast = forecast.properties.periods[0].detailedForecast;
+
+          // Append the detailed forecast to the span element
+          document.getElementById('detailed_forecast').textContent = detailedForecast;
+
+          // Get the air quality from the open weather map API: Set up a route with route parameters 
+          // lat and lon, to send to the server and retrieve the air quality
+          const air_api = `/air/${lat},${lon}`;
+          const get_air = await fetch(air_api);
+          const air = await get_air.json();
+            
+          // Air quality index from open weather map API
+          const aqi = air.list[0].main.aqi;
+          let airQuality;
+          switch(aqi) {
+            case 1: 
+              airQuality = 'Good';
+              break;
+            case 2:
+              airQuality = 'Fair';
+              break;
+            case 3:
+              airQuality = 'Moderate';
+              break;
+            case 4:
+              airQuality = 'Poor';
+              break;
+            case 5:
+              airQuality = 'Very Poor';
+              break;
+            default: 
+              airQuality = 'No Reading';
+          }
+
+          // Append the air quality to the span element
+          document.getElementById('air_quality').textContent = airQuality;
+
+          // Wrap the data that needs to be sent to the server in an object
+          const data = {lat, lon, timeStamp, detailedForecast, airQuality};
+          // Create an options object for the second parameter of the fetch function to make it 
+          // a post request
+          const options = {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+              body: JSON.stringify(data)
+          };
+
+          // Send the user's location and weather data to the server when page loads
+          const sendData = await fetch('/sendData', options);
+
+          // Save the user's location and weather data 
+          const saveButton = document.getElementById('save_location');
+          saveButton.addEventListener('click', async event => {
+            // Set up a route, then Send the post request with the options object to the server 
+            // to save in the database
+            const response = await fetch('/saveLocation', options);
+          });
+        });       
+      } else {
+        console.log("geolocation IS NOT available");
+      }
+    </script>
+  </body>
+</html>
